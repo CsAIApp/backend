@@ -1,0 +1,6 @@
+@TeamLink.API_HostAddress = http://localhost:5285
+
+GET {{TeamLink.API_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: cs_postgres
+    environment:
+      POSTGRES_USER: csadmin
+      POSTGRES_PASSWORD: edcrfvtgb
+      POSTGRES_DB: CsDb
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: cs_pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@csdeu.com
+      PGADMIN_DEFAULT_PASSWORD: csdeuadmin
+    ports:
+      - "5050:80"
+    depends_on:
+      - db
+
+volumes:
+  postgres_data:
