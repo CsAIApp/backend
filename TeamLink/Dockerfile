@@ -14,7 +14,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0
 WORKDIR /app
 COPY --from=build /app/out .
 
-# Port ayarı (Render otomatik atar ama biz yine de açalım)
+# Port ayarı
 EXPOSE 8080
 ENV ASPNETCORE_URLS=http://+:8080
 
