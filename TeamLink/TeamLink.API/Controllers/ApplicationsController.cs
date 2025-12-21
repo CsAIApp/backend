@@ -103,5 +103,31 @@ namespace TeamLink.API.Controllers
 
             return Ok(applications);
         }
+        // 4. BAŞVURU DURUMUNU GÜNCELLE (PUT: api/applications/{id}/status), sadece proje sahibi
+        [HttpPut("{id}/status")]
+        public async Task<IActionResult> UpdateApplicationStatus(int id, [FromBody] UpdateApplicationStatusDto request)
+        {
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var application = await _context.Applications
+                .Include(a => a.Project)
+                .FirstOrDefaultAsync(a => a.Id == id);
+
+            if (application == null) return NotFound("Başvuru bulunamadı.");
+
+            if (application.Project.OwnerId != userId)
+                return Forbid("Bu işlemi yapmaya yetkiniz yok. Sadece proje sahibi onaylayabilir.");
+
+            application.Status = request.IsAccepted ? ApplicationStatus.Accepted : ApplicationStatus.Rejected;
+
+
+            await _context.SaveChangesAsync();
+
+            return Ok(new
+            {
+                message = request.IsAccepted ? "Başvuru kabul edildi." : "Başvuru reddedildi.",
+                status = application.Status.ToString()
+            });
+        }
     }
 }
