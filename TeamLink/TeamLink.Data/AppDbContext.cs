@@ -16,5 +16,10 @@ namespace TeamLink.Data
         }
         public DbSet<Project> Projects { get; set; }
 
+        public DbSet<Application> Applications { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+        public DbSet<Message> Messages { get; set; }
+        public DbSet<Skill> Skills { get; set; }
+
     }
 }
