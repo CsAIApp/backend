@@ -42,6 +42,39 @@ namespace TeamLink.API.Controllers
 
             return Ok(projects);
         }
+        [HttpGet("{id}")]
+        public async Task<ActionResult<ProjectDto>> GetProject(int id)
+        {
+            // Veritabanından ID'si eşleşen ilk projeyi bul (Kullanıcı bilgisiyle birlikte)
+            var project = await _context.Projects
+                .Include(p => p.Owner)
+                .FirstOrDefaultAsync(p => p.Id == id);
+
+            // Eğer proje yoksa 404 dön
+            if (project == null)
+            {
+                return NotFound(new { message = "Proje bulunamadı." });
+            }
+
+            // Proje bulunduysa DTO'ya çevir ve Frontend'e yolla
+            var projectDto = new ProjectDto
+            {
+                Id = project.Id,
+                Title = project.Title,
+                Description = project.Description,
+                OwnerName = project.Owner?.FullName ?? project.Owner?.UserName ?? "İsimsiz",
+                CreatedAt = project.CreatedAt
+
+                // NOT: Eğer ProjectDto ve veritabanı modelinde aşağıdaki alanlar varsa 
+                // başlarındaki "//" işaretini kaldırarak onları da Frontend'e gönderebilirsin:
+
+                // Budget = project.Budget,
+                // Category = project.Category,
+                // ApplicationsCount = project.Applications?.Count ?? 0
+            };
+
+            return Ok(projectDto);
+        }
 
         // POST: api/projects
         // Yeni ilan ekler. SADECE GİRİŞ YAPANLAR (Kilitli).
