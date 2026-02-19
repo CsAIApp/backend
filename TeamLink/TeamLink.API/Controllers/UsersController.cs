@@ -11,7 +11,7 @@ namespace TeamLink.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize] // Bu sınıftaki her şeye sadece giriş yapanlar erişebilir
     public class UsersController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -35,8 +35,11 @@ namespace TeamLink.API.Controllers
                     u.Email,
                     u.UserName,
                     u.FullName,
+                    // Eğer veritabanında (AppUser modelinde) Title ve Bio alanların varsa
+                    // uygulamada görünmesi için aşağıdaki yorum satırlarını kaldırabilirsin:
+                    // u.Title,
+                    // u.Bio,
                     Skills = u.Skills.Select(s => s.Name).ToList()
-                    //buraya bio, link eklencek
                 })
                 .FirstOrDefaultAsync(u => u.Id == userId);
 
@@ -50,14 +53,19 @@ namespace TeamLink.API.Controllers
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             var user = await _context.Users.FindAsync(userId);
 
-            if (user == null) return NotFound();
+            if (user == null) return NotFound(new { message = "Kullanıcı bulunamadı." });
 
+            // Gelen verileri güncelle
             user.FullName = request.FullName;
+
+            // DİKKAT: AppUser.cs dosyasında Title ve Bio diye property'lerin tanımlıysa 
+            // aşağıdaki satırların başındaki "//" işaretini silerek aktif et:
+            // user.Title = request.Title;
             // user.Bio = request.Bio;
 
             await _context.SaveChangesAsync();
 
-            return Ok(new { message = "Profil güncellendi" });
+            return Ok(new { message = "Profil başarıyla güncellendi!" });
         }
 
         // 3. PROFİLİME YETENEK EKLE (POST: api/users/me/skills)
@@ -85,34 +93,11 @@ namespace TeamLink.API.Controllers
         }
     }
 
-    // Önce DTO oluşturalım (Aynı dosyanın en altına veya DTO klasörüne koyabilirsin)
+    // DTO Sınıfı Controller'ın DIŞINDA ama Namespace'in İÇİNDE olmalı
     public class UpdateProfileDto
     {
-        public string FullName { get; set; }
-        public string Title { get; set; }
-        public string Bio { get; set; }
-}
-
-// Controller'ın içine eklenecek Metod
-[HttpPut("me")]
-        [Authorize] // Sadece giriş yapmış kişiler erişebilir
-        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
-        {
-            // Giriş yapmış kullanıcının ID'sini Token'dan alıyoruz
-            var userEmail = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
-
-            var user = await _userManager.FindByEmailAsync(userEmail); // _userManager yoksa DbContext ile de bulabilirsin
-            if (user == null) return NotFound("Kullanıcı bulunamadı.");
-
-            // Gelen yeni verileri kullanıcıya ata
-            user.FullName = dto.FullName;
-            user.Title = dto.Title;
-            user.Bio = dto.Bio;
-
-            // Veritabanına kaydet
-            await _userManager.UpdateAsync(user);
-            // veya _context.SaveChanges();
-
-            return Ok(new { message = "Profil başarıyla güncellendi!" });
-        }
+        public string? FullName { get; set; }
+        public string? Title { get; set; }
+        public string? Bio { get; set; }
     }
+}
