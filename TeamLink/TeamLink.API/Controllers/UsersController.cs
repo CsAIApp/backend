@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
@@ -84,8 +85,34 @@ namespace TeamLink.API.Controllers
         }
     }
 
+    // Önce DTO oluşturalım (Aynı dosyanın en altına veya DTO klasörüne koyabilirsin)
     public class UpdateProfileDto
     {
         public string FullName { get; set; }
-    }
+        public string Title { get; set; }
+        public string Bio { get; set; }
 }
+
+// Controller'ın içine eklenecek Metod
+[HttpPut("me")]
+        [Authorize] // Sadece giriş yapmış kişiler erişebilir
+        public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto dto)
+        {
+            // Giriş yapmış kullanıcının ID'sini Token'dan alıyoruz
+            var userEmail = User.Claims.FirstOrDefault(c => c.Type == ClaimTypes.Email)?.Value;
+
+            var user = await _userManager.FindByEmailAsync(userEmail); // _userManager yoksa DbContext ile de bulabilirsin
+            if (user == null) return NotFound("Kullanıcı bulunamadı.");
+
+            // Gelen yeni verileri kullanıcıya ata
+            user.FullName = dto.FullName;
+            user.Title = dto.Title;
+            user.Bio = dto.Bio;
+
+            // Veritabanına kaydet
+            await _userManager.UpdateAsync(user);
+            // veya _context.SaveChanges();
+
+            return Ok(new { message = "Profil başarıyla güncellendi!" });
+        }
+    }
