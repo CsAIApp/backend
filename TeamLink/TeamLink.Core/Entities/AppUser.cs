@@ -10,6 +10,8 @@ namespace TeamLink.Core.Entities
     public class AppUser : IdentityUser
     {
         public string FullName { get; set; } = "**";
+        public string? Title { get; set; }
+        public string? Bio { get; set; }
         public ICollection<Skill> Skills { get; set; } = new List<Skill>();
     }
 }

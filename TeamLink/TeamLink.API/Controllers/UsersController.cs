@@ -58,10 +58,8 @@ namespace TeamLink.API.Controllers
             // Gelen verileri güncelle
             user.FullName = request.FullName;
 
-            // DİKKAT: AppUser.cs dosyasında Title ve Bio diye property'lerin tanımlıysa 
-            // aşağıdaki satırların başındaki "//" işaretini silerek aktif et:
-            // user.Title = request.Title;
-            // user.Bio = request.Bio;
+             user.Title = request.Title;
+             user.Bio = request.Bio;
 
             await _context.SaveChangesAsync();
 
