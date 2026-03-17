@@ -21,6 +21,12 @@ namespace TeamLink.Core.Entities
 
         public bool IsActive { get; set; } = true;
 
+        public int Budget { get; set; }
+        public string? Category { get; set; }
+        public List<string> Technologies { get; set; } = new();
+        public List<string> CandidateQuestions { get; set; } = new();
+        public string? ExternalLink { get; set; }
+
         public string OwnerId { get; set; }
         public AppUser Owner { get; set; }
 

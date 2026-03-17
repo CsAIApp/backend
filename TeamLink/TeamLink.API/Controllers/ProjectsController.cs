@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
 using TeamLink.API.DTO;
@@ -27,50 +26,52 @@ namespace TeamLink.API.Controllers
         public async Task<ActionResult<IEnumerable<ProjectDto>>> GetProjects()
         {
             var projects = await _context.Projects
-                .Include(p => p.Owner) // Kullanıcı bilgisini de çek (JOIN atar)
+                .Include(p => p.Owner)
                 .Where(p => p.IsActive)
-                .OrderByDescending(p => p.CreatedAt) // En yeni en üstte
-                .Select(p => new ProjectDto // DTO'ya çevir
+                .OrderByDescending(p => p.CreatedAt)
+                .Select(p => new ProjectDto
                 {
                     Id = p.Id,
                     Title = p.Title,
                     Description = p.Description,
-                    OwnerName = p.Owner.FullName ?? p.Owner.UserName, // Adı yoksa nickini koy
-                    CreatedAt = p.CreatedAt
+                    OwnerName = p.Owner.FullName ?? p.Owner.UserName,
+                    CreatedAt = p.CreatedAt,
+                    Budget = p.Budget,
+                    Category = p.Category,
+                    Technologies = p.Technologies,
+                    CandidateQuestions = p.CandidateQuestions,
+                    ExternalLink = p.ExternalLink
                 })
                 .ToListAsync();
 
             return Ok(projects);
         }
+
+        // GET: api/projects/{id}
         [HttpGet("{id}")]
         public async Task<ActionResult<ProjectDto>> GetProject(int id)
         {
-            // Veritabanından ID'si eşleşen ilk projeyi bul (Kullanıcı bilgisiyle birlikte)
             var project = await _context.Projects
                 .Include(p => p.Owner)
                 .FirstOrDefaultAsync(p => p.Id == id);
 
-            // Eğer proje yoksa 404 dön
             if (project == null)
             {
                 return NotFound(new { message = "Proje bulunamadı." });
             }
 
-            // Proje bulunduysa DTO'ya çevir ve Frontend'e yolla
             var projectDto = new ProjectDto
             {
                 Id = project.Id,
                 Title = project.Title,
                 Description = project.Description,
                 OwnerName = project.Owner?.FullName ?? project.Owner?.UserName ?? "İsimsiz",
-                CreatedAt = project.CreatedAt
-
-                // NOT: Eğer ProjectDto ve veritabanı modelinde aşağıdaki alanlar varsa 
-                // başlarındaki "//" işaretini kaldırarak onları da Frontend'e gönderebilirsin:
-
-                // Budget = project.Budget,
-                // Category = project.Category,
-                // ApplicationsCount = project.Applications?.Count ?? 0
+                CreatedAt = project.CreatedAt,
+                Budget = project.Budget,
+                Category = project.Category,
+                Technologies = project.Technologies,
+                CandidateQuestions = project.CandidateQuestions,
+                ExternalLink = project.ExternalLink
             };
 
             return Ok(projectDto);
@@ -82,21 +83,23 @@ namespace TeamLink.API.Controllers
         [HttpPost]
         public async Task<ActionResult<ProjectDto>> CreateProject(CreateProjectDto request)
         {
-            // 1. Token'dan "Kim giriş yapmış?" bilgisini al
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
 
             if (string.IsNullOrEmpty(userId)) return Unauthorized();
 
-            // 2. Yeni Proje Nesnesi Oluştur
             var project = new Project
             {
                 Title = request.Title,
                 Description = request.Description,
-                OwnerId = userId, // Token'dan gelen ID'yi yapıştır
-                CreatedAt = DateTime.UtcNow
+                OwnerId = userId,
+                CreatedAt = DateTime.UtcNow,
+                Budget = request.Budget,
+                Category = request.Category,
+                Technologies = request.Technologies ?? new List<string>(),
+                CandidateQuestions = request.CandidateQuestions ?? new List<string>(),
+                ExternalLink = request.ExternalLink
             };
 
-            // 3. Kaydet
             _context.Projects.Add(project);
             await _context.SaveChangesAsync();
 

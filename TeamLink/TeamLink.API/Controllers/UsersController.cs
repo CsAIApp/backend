@@ -11,7 +11,7 @@ namespace TeamLink.API.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    [Authorize] // Bu sınıftaki her şeye sadece giriş yapanlar erişebilir
+    [Authorize]
     public class UsersController : ControllerBase
     {
         private readonly AppDbContext _context;
@@ -35,13 +35,13 @@ namespace TeamLink.API.Controllers
                     u.Email,
                     u.UserName,
                     u.FullName,
-                    // Eğer veritabanında (AppUser modelinde) Title ve Bio alanların varsa
-                    // uygulamada görünmesi için aşağıdaki yorum satırlarını kaldırabilirsin:
-                    // u.Title,
-                    // u.Bio,
+                    u.Title,
+                    u.Bio,
                     Skills = u.Skills.Select(s => s.Name).ToList()
                 })
                 .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null) return NotFound(new { message = "Kullanıcı bulunamadı." });
 
             return Ok(user);
         }
@@ -51,15 +51,39 @@ namespace TeamLink.API.Controllers
         public async Task<IActionResult> UpdateProfile([FromBody] UpdateProfileDto request)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            var user = await _context.Users.FindAsync(userId);
+            var user = await _context.Users
+                .Include(u => u.Skills)
+                .FirstOrDefaultAsync(u => u.Id == userId);
 
             if (user == null) return NotFound(new { message = "Kullanıcı bulunamadı." });
 
             // Gelen verileri güncelle
-            user.FullName = request.FullName;
+            user.FullName = request.FullName ?? user.FullName;
+            user.Title = request.Title;
+            user.Bio = request.Bio;
 
-             user.Title = request.Title;
-             user.Bio = request.Bio;
+            // Skills güncellemesi
+            if (request.Skills != null)
+            {
+                // Mevcut skill ilişkilerini temizle
+                user.Skills.Clear();
+
+                foreach (var skillName in request.Skills)
+                {
+                    // Veritabanında bu isimle skill var mı?
+                    var skill = await _context.Skills
+                        .FirstOrDefaultAsync(s => s.Name.ToLower() == skillName.ToLower());
+
+                    if (skill == null)
+                    {
+                        // Yoksa yeni skill oluştur
+                        skill = new Skill { Name = skillName };
+                        _context.Skills.Add(skill);
+                    }
+
+                    user.Skills.Add(skill);
+                }
+            }
 
             await _context.SaveChangesAsync();
 
@@ -97,5 +121,6 @@ namespace TeamLink.API.Controllers
         public string? FullName { get; set; }
         public string? Title { get; set; }
         public string? Bio { get; set; }
+        public List<string>? Skills { get; set; }
     }
 }
